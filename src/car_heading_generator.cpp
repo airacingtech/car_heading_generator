@@ -112,9 +112,9 @@ double CarHeadingGenerator::calc_car_heading(double back_lat, double back_lon, d
     double y = std::sin(lon_delta) * std::cos(front_theta);
     double x = (std::cos(back_theta) * std::sin(front_theta)) - (std::sin(back_theta) * std::cos(front_theta) * std::cos(lon_delta));
     double car_heading = std::atan2(y, x);
-    car_heading = car_heading * RADIANS_TO_DEGREE;
-    car_heading = std::fmod(90.0 - car_heading, 360.0);
-    return car_heading * DEGREE_TO_RADIANS;
+    // car_heading = car_heading * RADIANS_TO_DEGREE;
+    car_heading = std::fmod(M_PI_2 - car_heading, 2 * M_PI);
+    return car_heading;
 }
 
 }
