@@ -73,7 +73,7 @@ int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
   rclcpp::NodeOptions options{};
-  auto node = std::make_shared<race::car_heading_generator::CarHeadingGenerator>(options);
+  auto node = std::make_shared<car_heading_generator::CarHeadingGenerator>(options);
   rclcpp::spin(node);
   rclcpp::shutdown();
   return 0;
