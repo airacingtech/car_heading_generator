@@ -12,6 +12,11 @@ CarHeadingGenerator::CarHeadingGenerator(const rclcpp::NodeOptions & options)
 : Node("car_heading_generator_node", options)
 {
   this->declare_parameter<double>("dt");
+  this->declare_parameter<std::string>("frame_id");
+  this->declare_parameter<double>("heading_scale");
+  heading_scale_ = this->get_parameter("heading_scale").as_double();
+  this->declare_parameter<double>("heading_offset");
+  heading_offset_ = this->get_parameter("heading_offset").as_double();
   gps_subscribers_[0] = std::make_unique<message_filters::Subscriber<gps_msgs::msg::GPSFix>>(this, "gps_front", rmw_qos_profile_sensor_data);
   gps_subscribers_[1] = std::make_unique<message_filters::Subscriber<gps_msgs::msg::GPSFix>>(this, "gps_back", rmw_qos_profile_sensor_data);
   gps_synchronizer_ = std::make_unique<message_filters::Synchronizer<GpsSyncPolicy>>(
@@ -23,9 +28,16 @@ CarHeadingGenerator::CarHeadingGenerator(const rclcpp::NodeOptions & options)
   );
 
   car_heading_msg_ = std::make_unique<std_msgs::msg::Float32>();
+  car_heading_stamped_msg_ = std::make_unique<geometry_msgs::msg::PoseStamped>();
+  car_heading_stamped_msg_->header.frame_id = this->get_parameter("frame_id").as_string();
 
   pub_heading_ = this->create_publisher<std_msgs::msg::Float32>(
     "car_heading", rclcpp::SensorDataQoS());
+  pub_heading_stamped_ = this->create_publisher<geometry_msgs::msg::PoseStamped>(
+    "car_heading_stamped", rclcpp::SensorDataQoS());
+
+  callback_handle_ = this->add_on_set_parameters_callback(
+    std::bind(&CarHeadingGenerator::parametersCallback, this, std::placeholders::_1));
 
   timer_ = rclcpp::create_timer(
     this, get_clock(), std::chrono::duration<float>(this->get_parameter("dt").as_double()), [this] {
@@ -33,8 +45,42 @@ CarHeadingGenerator::CarHeadingGenerator(const rclcpp::NodeOptions & options)
     });
 }
 
+rcl_interfaces::msg::SetParametersResult CarHeadingGenerator::parametersCallback(
+  const std::vector<rclcpp::Parameter> & parameters)
+{
+  rcl_interfaces::msg::SetParametersResult result;
+  result.successful = false;
+  for (const auto & param: parameters)
+  {
+    if (param.get_type() == rclcpp::ParameterType::PARAMETER_DOUBLE)
+    {
+      if (param.get_name() == "heading_offset")
+      {
+        heading_offset_ = param.as_double();
+        result.successful = true;
+      }
+      else if (param.get_name() == "heading_scale")
+      {
+        heading_scale_ = param.as_double();
+        result.successful = true;
+      }
+    }
+    else if (param.get_type() == rclcpp::ParameterType::PARAMETER_STRING)
+    {
+      if (param.get_name() == "frame_id")
+      {
+        car_heading_stamped_msg_->header.frame_id = param.as_string();
+        result.successful = true;
+      }
+    }
+  }
+  result.reason = result.successful ? "success" : "failure";
+  return result;
+}
+
 void CarHeadingGenerator::callback(const gps_msgs::msg::GPSFix::ConstSharedPtr front_msg, const gps_msgs::msg::GPSFix::ConstSharedPtr back_msg)
 {
+  car_heading_stamped_msg_->header.stamp = now();
   latest_front_msg_ = front_msg;
   latest_back_msg_ = back_msg;
   seen_gps_ = true;
@@ -47,8 +93,12 @@ void CarHeadingGenerator::timer_callback()
     return;
   }
   double car_heading = calc_car_heading(latest_back_msg_->latitude, latest_back_msg_->longitude, latest_front_msg_->latitude, latest_front_msg_->longitude);
+  car_heading = std::fmod((car_heading * heading_scale_) + (heading_offset_ * DEGREE_TO_RADIANS), 2 * M_PI);
+  quat_.setRPY(0, 0, car_heading);
   car_heading_msg_->data = car_heading;
+  car_heading_stamped_msg_->pose.orientation = tf2::toMsg(quat_);
   pub_heading_->publish(*car_heading_msg_);
+  pub_heading_stamped_->publish(*car_heading_stamped_msg_);
 }
 
 double CarHeadingGenerator::calc_car_heading(double back_lat, double back_lon, double front_lat, double front_lon)
