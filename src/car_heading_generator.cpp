@@ -28,12 +28,12 @@ CarHeadingGenerator::CarHeadingGenerator(const rclcpp::NodeOptions & options)
   );
 
   car_heading_msg_ = std::make_unique<std_msgs::msg::Float32>();
-  car_heading_stamped_msg_ = std::make_unique<geometry_msgs::msg::PoseStamped>();
+  car_heading_stamped_msg_ = std::make_unique<geometry_msgs::msg::QuaternionStamped>();
   car_heading_stamped_msg_->header.frame_id = this->get_parameter("frame_id").as_string();
 
   pub_heading_ = this->create_publisher<std_msgs::msg::Float32>(
     "car_heading", rclcpp::SensorDataQoS());
-  pub_heading_stamped_ = this->create_publisher<geometry_msgs::msg::PoseStamped>(
+  pub_heading_stamped_ = this->create_publisher<geometry_msgs::msg::QuaternionStamped>(
     "car_heading_stamped", rclcpp::SensorDataQoS());
 
   callback_handle_ = this->add_on_set_parameters_callback(

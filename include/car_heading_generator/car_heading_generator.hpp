@@ -10,7 +10,7 @@
 #include <message_filters/synchronizer.h>
 
 #include "gps_msgs/msg/gps_fix.hpp"
-#include "geometry_msgs/msg/pose_stamped.hpp"
+#include "geometry_msgs/msg/quaternion_stamped.hpp"
 #include "std_msgs/msg/float32.hpp"
 
 #include "tf2_geometry_msgs/tf2_geometry_msgs.h"
@@ -34,7 +34,7 @@ private:
   double calc_car_heading(double back_lat, double back_lon, double front_lat, double front_lon);
 
   rclcpp::TimerBase::SharedPtr timer_;
-  rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pub_heading_stamped_;
+  rclcpp::Publisher<geometry_msgs::msg::QuaternionStamped>::SharedPtr pub_heading_stamped_;
   rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr pub_heading_;
   std::unique_ptr<message_filters::Subscriber<gps_msgs::msg::GPSFix>> gps_subscribers_[2];
   std::unique_ptr<message_filters::Synchronizer<GpsSyncPolicy>> gps_synchronizer_;
@@ -43,7 +43,7 @@ private:
   gps_msgs::msg::GPSFix::ConstSharedPtr latest_back_msg_;
 
   std_msgs::msg::Float32::SharedPtr car_heading_msg_;
-  geometry_msgs::msg::PoseStamped::SharedPtr car_heading_stamped_msg_;
+  geometry_msgs::msg::QuaternionStamped::SharedPtr car_heading_stamped_msg_;
   
   bool seen_gps_{false};
   double heading_scale_;
