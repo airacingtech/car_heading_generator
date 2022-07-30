@@ -96,7 +96,7 @@ void CarHeadingGenerator::timer_callback()
   car_heading = std::fmod((car_heading * heading_scale_) + (heading_offset_ * DEGREE_TO_RADIANS), 2 * M_PI);
   quat_.setRPY(0, 0, car_heading);
   car_heading_msg_->data = car_heading;
-  car_heading_stamped_msg_->pose.orientation = tf2::toMsg(quat_);
+  car_heading_stamped_msg_->quaternion = tf2::toMsg(quat_);
   pub_heading_->publish(*car_heading_msg_);
   pub_heading_stamped_->publish(*car_heading_stamped_msg_);
 }

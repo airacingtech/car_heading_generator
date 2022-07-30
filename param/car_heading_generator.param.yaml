@@ -1,7 +1,7 @@
 /**:
   ros__parameters:
     use_sim_time: false # Whether or not the ROS2 clock should use sim time
-    dt: 0.1 # Time period to publish at
+    dt: 0.01 # Time period to publish at
     heading_scale: 1.0 # Scale to change heading by
     heading_offset: 0.0 # Offset to change heading by
     frame_id: "" # Frame Id of message
