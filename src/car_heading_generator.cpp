@@ -38,11 +38,6 @@ CarHeadingGenerator::CarHeadingGenerator(const rclcpp::NodeOptions & options)
 
   callback_handle_ = this->add_on_set_parameters_callback(
     std::bind(&CarHeadingGenerator::parametersCallback, this, std::placeholders::_1));
-
-  timer_ = rclcpp::create_timer(
-    this, get_clock(), std::chrono::duration<float>(this->get_parameter("dt").as_double()), [this] {
-      timer_callback();
-    });
 }
 
 rcl_interfaces::msg::SetParametersResult CarHeadingGenerator::parametersCallback(
@@ -83,15 +78,6 @@ void CarHeadingGenerator::callback(const gps_msgs::msg::GPSFix::ConstSharedPtr f
   car_heading_stamped_msg_->header.stamp = now();
   latest_front_msg_ = front_msg;
   latest_back_msg_ = back_msg;
-  seen_gps_ = true;
-}
-
-void CarHeadingGenerator::timer_callback()
-{
-  if (!seen_gps_)
-  {
-    return;
-  }
   double car_heading = calc_car_heading(latest_back_msg_->latitude, latest_back_msg_->longitude, latest_front_msg_->latitude, latest_front_msg_->longitude);
   car_heading = std::fmod((car_heading * heading_scale_) + (heading_offset_ * DEGREE_TO_RADIANS), 2 * M_PI);
   quat_.setRPY(0, 0, car_heading);
@@ -112,7 +98,6 @@ double CarHeadingGenerator::calc_car_heading(double back_lat, double back_lon, d
     double y = std::sin(lon_delta) * std::cos(front_theta);
     double x = (std::cos(back_theta) * std::sin(front_theta)) - (std::sin(back_theta) * std::cos(front_theta) * std::cos(lon_delta));
     double car_heading = std::atan2(y, x);
-    // car_heading = car_heading * RADIANS_TO_DEGREE;
     car_heading = std::fmod(M_PI_2 - car_heading, 2 * M_PI);
     return car_heading;
 }
